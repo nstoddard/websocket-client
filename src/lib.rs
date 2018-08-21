@@ -228,7 +228,7 @@ impl Socket {
     /// Returns `None` if there's be an error or the Socket has been
     /// disconnected, and `Some(vec![])` if no messages have been received.
     /// If this returns `None`, this `Socket` should no longer be used.
-    pub fn messages(&mut self) -> Option<Vec<SocketMessage>> {
+    pub fn recv_all(&mut self) -> Option<Vec<SocketMessage>> {
         let disconnected = self.state.disconnected.borrow();
         let error = self.state.error.borrow();
         if *disconnected || *error {
@@ -292,7 +292,7 @@ impl Socket {
     /// Returns `None` if there's be an error or the Socket has been
     /// disconnected, and `Some(vec![])` if no messages have been received.
     /// If this returns `None`, this `Socket` should no longer be used.
-    pub fn messages(&mut self) -> Option<Vec<SocketMessage>> {
+    pub fn recv_all(&mut self) -> Option<Vec<SocketMessage>> {
         let mut res = vec![];
         loop {
             match self.client.recv_message() {
