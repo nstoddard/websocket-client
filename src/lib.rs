@@ -13,6 +13,7 @@
 // Needed for js! macro
 #![recursion_limit = "256"]
 
+// TODO: see if there's a way to remove all these cfg's
 #[cfg(not(target_arch = "wasm32"))]
 extern crate websocket;
 #[cfg(target_arch = "wasm32")]
@@ -64,6 +65,7 @@ pub struct Socket {
     state: SocketState,
 }
 
+// TODO: see if there's a way to merge these impls so they can't accidentally get out of sync
 #[cfg(target_arch = "wasm32")]
 impl Socket {
     /// Creates a new Socket.
@@ -126,7 +128,6 @@ impl Socket {
             if (socket) {
                 socket.binaryType = "arraybuffer";
                 socket.onopen = function(e) {
-                    console.log("Socket open");
                     var queued = get_queued();
                     for (var i = 0; i < queued.length; i++) {
                         socket.send(queued[i]);
@@ -238,14 +239,6 @@ impl Socket {
             Some(res)
         }
     }
-
-    /*/// True if there has been an error and the Socket has been disconnected.
-    ///
-    /// The desktop implementation isn't fully implemented and always returns
-    /// false, so clients should also check the return value of `messages`.
-    pub fn error(&self) -> bool {
-        *self.state.error.borrow()
-    }*/
 }
 
 #[cfg(target_arch = "wasm32")]
@@ -330,12 +323,4 @@ impl Socket {
         }
         Some(res)
     }
-
-    /*/// True if there has been an error and the Socket has been disconnected.
-    ///
-    /// The desktop implementation isn't fully implemented and always returns
-    /// false, so clients should also check the return value of `messages`.
-    pub fn error(&self) -> bool {
-        false // TODO
-    }*/
 }
