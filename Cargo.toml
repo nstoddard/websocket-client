@@ -1,0 +1,23 @@
+[package]
+name = "websocket-client"
+version = "0.1.0"
+authors = ["Nathan Stoddard"]
+description = "A websocket client wrapper that works on desktop and wasm"
+license = "MIT"
+readme = "README.md"
+repository = "https://github.com/nstoddard/websocket-client"
+keywords = ["websocket"]
+categories = ["WebAssembly", "Web programming::WebSocket"]
+
+[lib]
+name = "websocket_client"
+doc = true
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+stdweb = "0.4"
+simple-error = "0.1"
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies.websocket]
+version = "0.20"
+default-features = false
+features = ["sync", "sync-ssl"]
