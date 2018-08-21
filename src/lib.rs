@@ -19,16 +19,16 @@ extern crate websocket;
 #[cfg(target_arch = "wasm32")]
 #[macro_use]
 extern crate stdweb;
-#[cfg(target_arch = "wasm32")]
 extern crate simple_error;
 
-#[cfg(target_arch = "wasm32")]
 use simple_error::*;
 #[cfg(target_arch = "wasm32")]
 use std::cell::RefCell;
 use std::error::Error;
 #[cfg(not(target_arch = "wasm32"))]
 use std::io::ErrorKind;
+#[cfg(not(target_arch = "wasm32"))]
+use std::marker::PhantomData;
 #[cfg(target_arch = "wasm32")]
 use std::rc::Rc;
 #[cfg(target_arch = "wasm32")]
@@ -41,8 +41,6 @@ use websocket::client::sync::Client;
 use websocket::stream::sync::NetworkStream;
 #[cfg(not(target_arch = "wasm32"))]
 use websocket::*;
-#[cfg(not(target_arch = "wasm32"))]
-use std::marker::PhantomData;
 
 #[derive(Debug, Clone)]
 pub enum SocketMessage {
@@ -65,7 +63,10 @@ pub struct Socket {
     state: SocketState,
 }
 
-// TODO: see if there's a way to merge these impls so they can't accidentally get out of sync
+// TODO: see if there's a way to merge these impls so they can't accidentally
+// get out of sync
+
+// TODO: use a custom error type instead of Box<Error>
 #[cfg(target_arch = "wasm32")]
 impl Socket {
     /// Creates a new Socket.
@@ -225,18 +226,20 @@ impl Socket {
     /// Returns all messages that have been received since the last call to
     /// this function.
     ///
-    /// Returns `None` if there's be an error or the Socket has been
-    /// disconnected, and `Some(vec![])` if no messages have been received.
-    /// If this returns `None`, this `Socket` should no longer be used.
-    pub fn recv_all(&mut self) -> Option<Vec<SocketMessage>> {
+    /// Returns an `Err` if there's be an error or the Socket has been
+    /// disconnected, or `Some(vec![])` if no messages have been received.
+    /// If this returns `Err`, this `Socket` should no longer be used.
+    pub fn recv_all(&mut self) -> Result<Vec<SocketMessage>, Box<Error>> {
         let disconnected = self.state.disconnected.borrow();
         let error = self.state.error.borrow();
         if *disconnected || *error {
-            None
+            Err(Box::new(SimpleError::new(
+                "Socket disconnected or there's been an error",
+            )))
         } else {
             let mut received = self.state.received.borrow_mut();
             let res = received.drain(..).collect();
-            Some(res)
+            Ok(res)
         }
     }
 }
@@ -269,7 +272,10 @@ impl Socket {
         client.stream_ref().as_tcp().set_nodelay(true)?;
         client.stream_ref().as_tcp().set_nonblocking(true)?;
 
-        Ok(Socket { client, not_send: PhantomData })
+        Ok(Socket {
+            client,
+            not_send: PhantomData,
+        })
     }
 
     /// Sends a textual message.
@@ -289,10 +295,10 @@ impl Socket {
     /// Returns all messages that have been received since the last call to
     /// this function.
     ///
-    /// Returns `None` if there's be an error or the Socket has been
-    /// disconnected, and `Some(vec![])` if no messages have been received.
-    /// If this returns `None`, this `Socket` should no longer be used.
-    pub fn recv_all(&mut self) -> Option<Vec<SocketMessage>> {
+    /// Returns an `Err` if there's be an error or the Socket has been
+    /// disconnected, or `Some(vec![])` if no messages have been received.
+    /// If this returns `Err`, this `Socket` should no longer be used.
+    pub fn recv_all(&mut self) -> Result<Vec<SocketMessage>, Box<Error>> {
         let mut res = vec![];
         loop {
             match self.client.recv_message() {
@@ -306,7 +312,9 @@ impl Socket {
                                 .unwrap();
                         }
                         message::OwnedMessage::Close(_) => {
-                            return None;
+                            return Err(Box::new(SimpleError::new(
+                                "Socket disconnected or there's been an error",
+                            )));
                         }
                         other => panic!("Unsupported message type: {:?}", other),
                     };
@@ -316,11 +324,13 @@ impl Socket {
                         break;
                     }
                     _ => {
-                        return None;
+                        return Err(Box::new(SimpleError::new(
+                            "Socket disconnected or there's been an error",
+                        )));
                     }
                 },
             }
         }
-        Some(res)
+        Ok(res)
     }
 }

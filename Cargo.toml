@@ -1,6 +1,6 @@
 [package]
 name = "websocket-client"
-version = "0.1.1"
+version = "0.2.0"
 authors = ["Nathan Stoddard"]
 description = "A websocket client library which supports both desktop and webassembly"
 license = "MIT"
@@ -13,9 +13,11 @@ categories = ["wasm", "web-programming::websocket"]
 name = "websocket_client"
 doc = true
 
+[dependencies]
+simple-error = "0.1"
+
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 stdweb = "0.4"
-simple-error = "0.1"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies.websocket]
 version = "0.20"
