@@ -1,13 +1,13 @@
 [package]
 name = "websocket-client"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Nathan Stoddard"]
-description = "A websocket client wrapper that works on desktop and wasm"
+description = "A websocket client library which supports both desktop and webassembly"
 license = "MIT"
 readme = "README.md"
 repository = "https://github.com/nstoddard/websocket-client"
 keywords = ["websocket"]
-categories = ["WebAssembly", "Web programming::WebSocket"]
+categories = ["wasm", "web-programming::websocket"]
 
 [lib]
 name = "websocket_client"
