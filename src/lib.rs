@@ -21,6 +21,9 @@ extern crate websocket;
 extern crate stdweb;
 extern crate simple_error;
 
+#[cfg(target_arch = "wasm32")]
+extern crate wasm_bindgen;
+
 use simple_error::*;
 #[cfg(target_arch = "wasm32")]
 use std::cell::RefCell;
@@ -66,11 +69,11 @@ pub struct Socket {
 // TODO: see if there's a way to merge these impls so they can't accidentally
 // get out of sync
 
-// TODO: use a custom error type instead of Box<Error>
+// TODO: use a custom error type instead of Box<dyn Error>
 #[cfg(target_arch = "wasm32")]
 impl Socket {
     /// Creates a new Socket.
-    pub fn new(url: String) -> Result<Socket, Box<Error>> {
+    pub fn new(url: String) -> Result<Socket, Box<dyn Error>> {
         stdweb::initialize();
 
         let state = SocketState {
@@ -167,7 +170,7 @@ impl Socket {
 
     // TODO: the 'send' functions should probably pass borrowed data
     /// Sends a textual message.
-    pub fn send(&mut self, data: String) -> Result<(), Box<Error>> {
+    pub fn send(&mut self, data: String) -> Result<(), Box<dyn Error>> {
         let queued = self.state.queued.clone();
         let ready = match js! {
         var socket = @{&self.js_obj};
@@ -194,7 +197,7 @@ impl Socket {
     }
 
     /// Sends a binary message.
-    pub fn send_binary(&mut self, data: Vec<u8>) -> Result<(), Box<Error>> {
+    pub fn send_binary(&mut self, data: Vec<u8>) -> Result<(), Box<dyn Error>> {
         let queued = self.state.queued.clone();
         let ready = match js! {
             var socket = @{&self.js_obj};
@@ -229,7 +232,7 @@ impl Socket {
     /// Returns an `Err` if there's be an error or the Socket has been
     /// disconnected, or `Some(vec![])` if no messages have been received.
     /// If this returns `Err`, this `Socket` should no longer be used.
-    pub fn recv_all(&mut self) -> Result<Vec<SocketMessage>, Box<Error>> {
+    pub fn recv_all(&mut self) -> Result<Vec<SocketMessage>, Box<dyn Error>> {
         let disconnected = self.state.disconnected.borrow();
         let error = self.state.error.borrow();
         if *disconnected || *error {
@@ -256,7 +259,7 @@ impl Drop for Socket {
 
 #[cfg(not(target_arch = "wasm32"))]
 pub struct Socket {
-    client: Client<Box<NetworkStream + Send>>,
+    client: Client<Box<dyn NetworkStream + Send>>,
     // This is used to mark this type as !Send, to match the wasm version of this
     // struct which can't implement `Send`.
     not_send: PhantomData<*const ()>,
@@ -265,7 +268,7 @@ pub struct Socket {
 #[cfg(not(target_arch = "wasm32"))]
 impl Socket {
     /// Creates a new Socket.
-    pub fn new(url: String) -> Result<Socket, Box<Error>> {
+    pub fn new(url: String) -> Result<Socket, Box<dyn Error>> {
         let client = ClientBuilder::new(&url)?.connect(None)?;
         // In theory, NetworkStream *should* imply AsTcpStream, but that doesn't seem
         // to work in practice. Possibly a bug in `websocket`.
@@ -279,14 +282,14 @@ impl Socket {
     }
 
     /// Sends a textual message.
-    pub fn send(&mut self, data: String) -> Result<(), Box<Error>> {
+    pub fn send(&mut self, data: String) -> Result<(), Box<dyn Error>> {
         self.client
             .send_message(&message::OwnedMessage::Text(data))?;
         Ok(())
     }
 
     /// Sends a binary message.
-    pub fn send_binary(&mut self, data: Vec<u8>) -> Result<(), Box<Error>> {
+    pub fn send_binary(&mut self, data: Vec<u8>) -> Result<(), Box<dyn Error>> {
         self.client
             .send_message(&message::OwnedMessage::Binary(data))?;
         Ok(())
@@ -298,7 +301,7 @@ impl Socket {
     /// Returns an `Err` if there's be an error or the Socket has been
     /// disconnected, or `Some(vec![])` if no messages have been received.
     /// If this returns `Err`, this `Socket` should no longer be used.
-    pub fn recv_all(&mut self) -> Result<Vec<SocketMessage>, Box<Error>> {
+    pub fn recv_all(&mut self) -> Result<Vec<SocketMessage>, Box<dyn Error>> {
         let mut res = vec![];
         loop {
             match self.client.recv_message() {
